@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>User Data Viewer</title>
+        <style>
+            :root {
+                color-scheme: light dark;
+                font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+                background-color: #f5f5f5;
+                color: #1f1f1f;
+            }
+            body {
+                margin: 0;
+                line-height: 1.6;
+            }
+            header {
+                background: linear-gradient(135deg, #283593, #512da8);
+                color: #ffffff;
+                padding: 2rem 1rem;
+                text-align: center;
+            }
+            main {
+                max-width: 960px;
+                margin: 2rem auto;
+                padding: 0 1rem;
+            }
+            .card {
+                background: #ffffff;
+                box-shadow: 0 12px 24px rgba(40, 53, 147, 0.08);
+                border-radius: 16px;
+                padding: 2rem;
+            }
+            .status {
+                font-weight: 600;
+                margin-bottom: 1.5rem;
+            }
+            dl {
+                display: grid;
+                grid-template-columns: minmax(120px, 200px) 1fr;
+                gap: 0.75rem 1rem;
+                margin: 0;
+            }
+            dt {
+                font-weight: 700;
+                text-transform: uppercase;
+                letter-spacing: 0.05em;
+                color: #3949ab;
+            }
+            dd {
+                margin: 0;
+                padding: 0.5rem 0.75rem;
+                background-color: #f2f4ff;
+                border-radius: 12px;
+                overflow-wrap: anywhere;
+            }
+            ul {
+                list-style: none;
+                padding: 0;
+                margin: 0;
+                display: grid;
+                gap: 1.5rem;
+            }
+            li {
+                background-color: #f9f9ff;
+                border: 1px solid rgba(40, 53, 147, 0.12);
+                border-radius: 16px;
+                padding: 1.5rem;
+            }
+            pre {
+                background-color: rgba(40, 53, 147, 0.08);
+                padding: 1rem;
+                border-radius: 12px;
+                overflow-x: auto;
+            }
+            @media (max-width: 600px) {
+                dl {
+                    grid-template-columns: 1fr;
+                }
+                dt {
+                    font-size: 0.85rem;
+                    color: #5c6bc0;
+                }
+            }
+        </style>
+    </head>
+    <body>
+        <header>
+            <h1>User Directory</h1>
+            <p>Fetched directly from the live API endpoint.</p>
+        </header>
+        <main>
+            <section class="card">
+                <p id="status" class="status">Loading user data…</p>
+                <div id="data-container" aria-live="polite"></div>
+            </section>
+        </main>
+        <script>
+            const ENDPOINT =
+                "https://backend-users-drab-ten.vercel.app/api/user";
+            const statusEl = document.getElementById("status");
+            const containerEl = document.getElementById("data-container");
+            function createDataTree(data) {
+                if (Array.isArray(data)) {
+                    const list = document.createElement("ul");
+                    data.forEach((item) => {
+                        const listItem = document.createElement("li");
+                        listItem.appendChild(createDataTree(item));
+                        list.appendChild(listItem);
+                    });
+                    return list;
+                }
+                if (data && typeof data === "object") {
+                    const definitionList = document.createElement("dl");
+                    Object.entries(data).forEach(([key, value]) => {
+                        const term = document.createElement("dt");
+                        term.textContent = key;
+                        const definition = document.createElement("dd");
+                        if (value !== null && typeof value === "object") {
+                            definition.appendChild(createDataTree(value));
+                        } else {
+                            definition.textContent = value ?? "—";
+                        }
+                        definitionList.appendChild(term);
+                        definitionList.appendChild(definition);
+                    });
+                    return definitionList;
+                }
+                const span = document.createElement("span");
+                span.textContent = data ?? "—";
+                return span;
+            }
+            async function loadUserData() {
+                try {
+                    const response = await fetch(ENDPOINT);
+                    if (!response.ok) {
+                        throw new Error(
+                            `Request failed with status ${response.status}`,
+                        );
+                    }
+                    const data = await response.json();
+                    statusEl.textContent = "User data retrieved successfully.";
+                    const tree = createDataTree(data);
+                    containerEl.appendChild(tree);
+                } catch (error) {
+                    statusEl.textContent = "Unable to load user data.";
+                    const pre = document.createElement("pre");
+                    pre.textContent = error.message;
+                    containerEl.appendChild(pre);
+                }
+            }
+            loadUserData();
+        </script>
+    </body>
+</html>
